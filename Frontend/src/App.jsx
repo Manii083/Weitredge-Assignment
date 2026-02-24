@@ -1,15 +1,45 @@
 import axios from "axios";
 import "./App.css";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { v4 as uuidv4 } from "uuid";
 
 function App() {
   const [message, setMessage] = useState("");
   const [chat, setChat] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [sessionId, setSessionId] = useState(null);
+  const [sessionId, setSessionId] = useState("");
+  const chatEndRef = useRef(null);
 
-  // ✅ Generate sessionId on first load
+  // Send Message
+  const sendMessage = async () => {
+    if (!message.trim()) return;
+
+    const userMessage = { sender: "user", text: message };
+    setChat((prev) => [...prev, userMessage]);
+    setLoading(true);
+
+    try {
+      const response = await axios.post("http://localhost:5000/api/chat", {
+        sessionId,
+        message,
+      });
+
+      const aiMessage = {
+        sender: "assistant",
+        text: response.data.reply,
+      };
+
+      setChat((prev) => [...prev, aiMessage]);
+    } catch (error) {
+      console.error(error);
+      alert("Backend not connected");
+    }
+
+    setMessage("");
+    setLoading(false);
+  };
+
+  // Create or Get Session ID
   useEffect(() => {
     let storedId = localStorage.getItem("sessionId");
 
@@ -21,7 +51,7 @@ function App() {
     setSessionId(storedId);
   }, []);
 
-  // ✅ Fetch conversation when sessionId is ready
+  // Load Previous Conversation
   useEffect(() => {
     if (!sessionId) return;
 
@@ -29,7 +59,7 @@ function App() {
       .get(`http://localhost:5000/api/conversations/${sessionId}`)
       .then((res) => {
         const formatted = res.data.map((msg) => ({
-          sender: msg.role,
+          sender: msg.role === "assistant" ? "assistant" : "user",
           text: msg.content,
         }));
 
@@ -38,36 +68,10 @@ function App() {
       .catch((err) => console.error(err));
   }, [sessionId]);
 
-  const sendMessage = async () => {
-    if (!message.trim() || !sessionId) return;
-
-    const userMessage = { sender: "user", text: message };
-    setChat((prev) => [...prev, userMessage]);
-    setLoading(true);
-
-    try {
-      const response = await axios.post(
-        "http://localhost:5000/api/chat",
-        {
-          sessionId,
-          message,
-        }
-      );
-
-      const aiMessage = {
-        sender: "assistant",
-        text: response.data.reply,
-      };
-
-      setChat((prev) => [...prev, aiMessage]);
-    } catch (error) {
-      console.error(error);
-      alert("Backend not connected");
-    } finally {
-      setLoading(false);
-      setMessage("");
-    }
-  };
+  // Auto Scroll
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chat]);
 
   return (
     <div className="container">
@@ -84,6 +88,8 @@ function App() {
         ))}
 
         {loading && <div className="ai-msg">Thinking...</div>}
+
+        <div ref={chatEndRef} />
       </div>
 
       <div className="input-box">
@@ -93,10 +99,9 @@ function App() {
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-          disabled={!sessionId}
         />
-        <button onClick={sendMessage} disabled={!sessionId || loading}>
-          Send
+        <button onClick={sendMessage} disabled={loading}>
+          {loading ? "Sending..." : "Send"}
         </button>
       </div>
     </div>
