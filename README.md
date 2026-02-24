@@ -59,7 +59,7 @@ npm start
 
 Frontend runs at:
 
-http://localhost:3000
+http://localhost:5007
 📡 API Documentation
 🔹 POST /api/chat
 
@@ -67,8 +67,8 @@ Send user message and receive AI response.
 
 Request Body
 {
-  "sessionId": "string",
-  "message": "string"
+  "sessionId": "abc123",
+  "message": "how to change password"
 }
 Response
 {
@@ -112,7 +112,17 @@ This enables session-based conversation tracking.
 
 📸 Sample Screenshots
 
-
+docs.json :
+[
+  {
+    "title": "Reset Password",
+    "content": "Users can reset password from Settings > Security."
+  },
+  {
+    "title": "Refund Policy",
+    "content": "Refunds are allowed within 7 days of purchase."
+  }
+]
 
 
 📌 Assumptions
