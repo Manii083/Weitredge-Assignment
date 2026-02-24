@@ -111,11 +111,6 @@ createdAt → Timestamp
 This enables session-based conversation tracking.
 
 📸 Sample Screenshots
-<img width="1351" height="914" alt="image" src="https://github.com/user-attachments/assets/1e07f667-c622-4520-946e-215826e42203" />
-
-<img width="1918" height="869" alt="image" src="https://github.com/user-attachments/assets/8818df2d-210b-4e01-b87f-d2239219bd66" />
-
-<img width="809" height="286" alt="image" src="https://github.com/user-attachments/assets/06fef0c0-78dd-48c2-afc9-be33100c90cf" />
 
 <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/b3152aca-0765-4dc5-92c2-85d0dd16467c" />
 
