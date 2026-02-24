@@ -1,19 +1,15 @@
 AI Support Assistant
 
-A full-stack AI-powered support assistant built with React + Node.js + MongoDB.
+A full-stack AI-powered support assistant built with React + Node.js.
 The system stores conversations per session and returns AI-based responses.
 
 📌 Features
 
 Session-based conversation storage
 
-Persistent chat history
-
 REST API backend
 
 Clean React UI
-
-Token usage tracking
 
 🛠 Tech Stack
 
@@ -58,8 +54,8 @@ npm install
 npm start
 
 Frontend runs at:
-
 http://localhost:5007
+
 📡 API Documentation
 🔹 POST /api/chat
 
@@ -129,7 +125,6 @@ docs.json :
 ]
 
 
-📌 Assumptions
 
 Each user session is identified via UUID stored in localStorage.
 
