@@ -1,116 +1,215 @@
-AI Support Assistant
+🧪 AI-Powered Support Assistant
 
-A full-stack AI-powered support assistant built with React + Node.js.
-The system stores conversations per session and returns AI-based responses.
+An AI-powered full-stack Support Assistant built using:
 
-📌 Features
+Frontend: React.js
 
-Session-based conversation storage
+Backend: Node.js (Express)
 
-REST API backend
+Database: SQLite
 
-Clean React UI
+LLM Provider: (GROK)
 
-🛠 Tech Stack
+The assistant answers strictly based on provided product documentation, maintains session-based context, and stores all conversations in SQLite.
 
-Frontend:
+If a question is outside the documentation scope, the assistant responds:
 
-React
+"Sorry, I don’t have information about that."
 
-Axios
+🚀 Features
+✅ Core Features
 
-UUID
+Chat-based UI built in React
+
+Session-based conversation memory
+
+SQLite-based persistent storage
+
+Document-restricted AI responses.
+
+Context handling, last 5 user+assistant pairs
+
+Rate limiting per IP
+
+Proper error handling
+
+📁 Project Structure
+Weitredge-Assignment/
+│
+├── frontend/      → React application
+├── backend/       → Express server + SQLite + LLM logic
+├── docs.json      → Product documentation 
+└── README.md
+🧠 How It Works
+
+User sends a message from React UI
 
 Backend:
 
-Node.js
+Validates session
 
-Express.js
+Fetches last 5 message pairs from SQLite
 
-GROK API
+Loads relevant docs content from docs.json
 
-🚀 Setup Instructions
+Constructs a strict prompt
+
+Calls LLM
+
+LLM generates answer using ONLY docs
+
+Messages are stored in SQLite
+
+Response returned to frontend
+
+🗄 Database Schema
+✅ sessions Table
+Column	Type	Description
+id	TEXT	sessionId (PK)
+created_at	DATETIME	Created timestamp
+updated_at	DATETIME	Last message timestamp
+✅ messages Table
+Column	Type	Description
+id	INTEGER	Primary Key (Auto Increment)
+session_id	TEXT	Foreign key → sessions.id
+role	TEXT	"user" or "assistant"
+content	TEXT	Message text
+created_at	DATETIME	Timestamp
+🔌 API Endpoints
+✅ 1️⃣ POST /api/chat
+
+Send a message to the assistant.
+
+Request
+{
+  "sessionId": "abc123",
+  "message": "How can I reset my password?"
+}
+Response
+{
+  "reply": "Users can reset password from Settings > Security.",
+  "tokensUsed": 123
+}
+✅ 2️⃣ GET /api/conversations/:sessionId
+
+Returns all messages for a session (chronological order).
+
+✅ 3️⃣ GET /api/sessions
+
+Returns list of all sessions with lastUpdated timestamps.
+
+📄 Document-Based Answering
+
+The system uses a docs.json file:
+
+[
+  {
+    "title": "Reset Password",
+    "content": "Users can reset password from Settings > Security."
+  },
+  {
+    "title": "Refund Policy",
+    "content": "Refunds are allowed within 7 days of purchase."
+  }
+]
+Strict Rules
+
+Assistant answers ONLY using content from this file
+
+If information is not found:
+
+"Sorry, I don’t have information about that."
+
+No guessing or hallucination
+
+🔄 Context Handling
+
+Last 5 user + assistant pairs are fetched from SQLite
+
+Context is included in prompt
+
+No in-memory session storage
+
+Fully persistent conversation history
+
+⚙️ Setup Instructions
 1️⃣ Clone Repository
-git clone <your-repo-url>
+git clone https://github.com/Manii083/Weitredge-Assignment.git
+cd Weitredge-Assignment
 2️⃣ Backend Setup
 cd backend
 npm install
 
-Create .env file inside /backend:
+Create .env file:
 
 PORT=5000
-GROK_API_KEY=your_GROK_key
+LLM_API_KEY=your_api_key_here
+LLM_PROVIDER=openai
 
 Run backend:
 
 npm start
-
-Server runs at:
-
-http://localhost:5000
 3️⃣ Frontend Setup
 cd frontend
 npm install
 npm start
 
-Frontend runs at:
-http://localhost:5007
+Frontend runs on:
 
-📡 API Documentation
-🔹 POST /api/chat
+http://localhost:3000
 
-Send user message and receive AI response.
+Backend runs on:
 
-Request Body
+http://localhost:5000
+🛡 Error Handling
+
+The backend handles:
+
+Missing sessionId
+
+Missing message
+
+LLM API failures
+
+Database failures
+
+Rate limit exceeded
+
+All errors return clean JSON:
+
 {
-  "sessionId": "abc123",
-  "message": "how to change password"
+  "error": "Message is required."
 }
-Response
-{
-  "reply": "AI response text",
-  "tokensUsed": 120
-}
-🔹 GET /api/conversations/:sessionId
+🚦 Rate Limiting
 
-Fetch full conversation history for session.
+Basic IP-based rate limiting is implemented to prevent abuse.
 
-Response
-[
-  {
-    "role": "user",
-    "content": "Hello"
-  },
-  {
-    "role": "assistant",
-    "content": "Hi! How can I help?"
-  }
-]
-🗄 Database Schema Explanation
-Conversation Schema
-{
-  sessionId: String,
-  role: String,       // "user" or "assistant"
-  content: String,
-  createdAt: Date
-}
-Explanation:
 
-sessionId → Identifies unique user session
-
-role → Identifies speaker
-
-content → Message text
-
-createdAt → Timestamp
-
-This enables session-based conversation tracking.
-
-📸 Sample Screenshots
-
+📸 Screenshots
 <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/b3152aca-0765-4dc5-92c2-85d0dd16467c" />
 
 <img width="1916" height="937" alt="image" src="https://github.com/user-attachments/assets/b43ba7ca-c270-41ea-b228-75b807b88117" />
+
+📌 Assumptions
+
+Documentation is small and stored locally (docs.json)
+
+LLM token usage is returned if supported by provider
+
+SQLite is sufficient for assignment scope
+
+👨‍💻 Author
+
+Manideep Katkam
+
+Backend-focused developer building scalable systems with:
+
+Node.js
+
+Express
+
+React
+
 
 docs.json :
 [
@@ -125,13 +224,3 @@ docs.json :
 ]
 
 
-
-Each user session is identified via UUID stored in localStorage.
-
-Conversations are stored message-by-message.
-
-No authentication required.
-
-GROK responses may vary.
-
-System designed for single-user local testing environment.
