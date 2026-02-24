@@ -3,94 +3,153 @@ const express = require("express");
 const db = require("./db");
 const cors = require("cors");
 const rateLimit = require("express-rate-limit");
-
-
+const database = require("./database");
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
-app.use(
-  rateLimit({
-    windowMs: 60 * 1000,
-    max: 30
-  })
-);
+// app.use(
+//   rateLimit({
+//     windowMs: 60 * 1000,
+//     max: 30
+//   })
+// );
+
+const limiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+});
+
+app.use(limiter);
 
 
 app.post("/api/chat", async (req, res) => {
   try {
     const { sessionId, message } = req.body;
 
+    // 1️⃣ Validation
     if (!sessionId || !message) {
-      return res.status(400).json({ error: "Missing sessionId or message" });
+      return res.status(400).json({
+        error: "sessionId and message are required",
+      });
     }
 
-    // Ensure session exists
+    // 2️⃣ Create session if it doesn't exist
     db.run(
-      `INSERT OR IGNORE INTO sessions(id) VALUES(?)`,
-      [sessionId]
+      `INSERT OR IGNORE INTO sessions (id) VALUES (?)`,
+      [sessionId],
+      (err) => {
+        if (err) {
+          return res.status(500).json({ error: "Failed to create session" });
+        }
+      }
     );
 
-    // Save user message
+    // 3️⃣ Store user message
     db.run(
-      `INSERT INTO messages(session_id, role, content)
-       VALUES(?, 'user', ?)`,
-      [sessionId, message]
+      `INSERT INTO messages (session_id, role, content) VALUES (?, ?, ?)`,
+      [sessionId, "user", message],
+      (err) => {
+        if (err) {
+          return res.status(500).json({ error: "Failed to store user message" });
+        }
+      }
     );
 
-    // Get last 10 messages
+    // 4️⃣ Fetch last 10 messages (5 user + 5 assistant pairs)
     db.all(
-      `SELECT role, content
-       FROM messages
-       WHERE session_id = ?
-       ORDER BY created_at DESC
+      `SELECT role, content 
+       FROM messages 
+       WHERE session_id = ? 
+       ORDER BY created_at DESC 
        LIMIT 10`,
       [sessionId],
-      async (err, rows) => {
+      (err, rows) => {
         if (err) {
-          return res.status(500).json({ error: "DB error" });
+          return res.status(500).json({ error: "Failed to fetch history" });
         }
 
-        const context = rows.reverse();
+        const history = rows.reverse(); // chronological order
 
-        const { generateReply } = require("./llm");
-        const reply = await generateReply(context, message);
+        // 5️⃣ Load docs
+        const docs = require("./docs.json");
 
-        // Save assistant reply
+        
+
+      // 6️⃣ Smarter document matching
+
+      const normalizedMessage = message.toLowerCase();
+
+      // Remove common useless words
+      const stopWords = ["what", "is", "the", "how", "can", "i", "a", "an", "about", "please"];
+
+      const messageWords = normalizedMessage
+        .replace(/[^\w\s]/gi, "")
+        .split(" ")
+        .filter(word => word && !stopWords.includes(word));
+
+      // Score each document
+      let bestMatch = null;
+      let highestScore = 0;
+
+      docs.forEach(doc => {
+        const docText = (doc.title + " " + doc.content).toLowerCase();
+
+        let score = 0;
+
+        messageWords.forEach(word => {
+          if (docText.includes(word)) {
+            score++;
+          }
+        });
+
+        if (score > highestScore) {
+          highestScore = score;
+          bestMatch = doc;
+        }
+      });
+
+      let reply;
+
+      // Require at least 1 keyword match
+      if (!bestMatch || highestScore === 0) {
+        reply = "Sorry, I don’t have information about that.";
+      } else {
+        reply = bestMatch.content;
+      }
+
+        // 8️⃣ Store assistant reply
         db.run(
-          `INSERT INTO messages(session_id, role, content)
-           VALUES(?, 'assistant', ?)`,
-          [sessionId, reply]
+          `INSERT INTO messages (session_id, role, content) VALUES (?, ?, ?)`,
+          [sessionId, "assistant", reply],
+          (err) => {
+            if (err) {
+              return res.status(500).json({ error: "Failed to store assistant message" });
+            }
+          }
         );
 
-        // ✅ Only ONE response
-        res.json({ reply });
+        // 9️⃣ Update session timestamp
+        db.run(
+          `UPDATE sessions SET updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+          [sessionId]
+        );
+
+        // 🔟 Return response
+        res.json({
+          reply,
+          tokensUsed: 0, // You can update if using real LLM
+        });
       }
     );
 
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Server error" });
+    console.error("Chat API Error:", error);
+    res.status(500).json({
+      error: "Internal server error",
+    });
   }
-});
-
-app.get("/api/conversations/:sessionId", (req, res) => {
-  const sessionId = req.params.sessionId;
-
-  db.all(
-    `SELECT role, content, created_at
-     FROM messages
-     WHERE session_id = ?
-     ORDER BY created_at ASC`,
-    [sessionId],
-    (err, rows) => {
-      if (err) {
-        return res.status(500).json({ error: "DB error" });
-      }
-      res.json(rows);
-    }
-  );
 });
 
 app.get("/", (req, res) => {
