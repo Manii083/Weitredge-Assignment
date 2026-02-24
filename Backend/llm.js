@@ -18,7 +18,7 @@ async function generateReply(message) {
       model: "llama-3.1-8b-instant",
     });
 
-    return chatCompletion.choices[0].message.content;
+    return chatCompletion.choices[0].message.content.trim();
   } catch (error) {
     console.error(error);
     return "Error generating response.";
